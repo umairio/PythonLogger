@@ -8,16 +8,6 @@ class LogRequestMiddleware(object):
     def __init__(self, get_response):
         self.get_response = get_response
         self.logger = logging.getLogger(__name__)
-        formatter = logging.Formatter("%(levelname)s - %(message)s")
-
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(formatter)
-        self.logger.addHandler(console_handler)
-
-        file_handler = logging.FileHandler("requests.log")
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.INFO)
-        self.logger.addHandler(file_handler)
         self.userlog = defaultdict(list)
 
     def get_client_ip(self, request):
@@ -41,6 +31,17 @@ class LogRequestMiddleware(object):
 
                       
     def __call__(self, request):
+        n = int
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            loyalty = request.user.loyalty
+            if loyalty == 'gold':
+                n = 10
+            elif loyalty == 'silver':
+                n = 5
+            elif loyalty == 'bronze':
+                n = 2
+        else:
+            n = 1
         time_now = datetime.now()
         ip = self.get_client_ip(request)
         self.logger.info(f"User IP: {ip} Request time: {time_now}")
@@ -48,12 +49,11 @@ class LogRequestMiddleware(object):
         
         self.userlog[ip].append(time_now)                   #added new login time 
 
-        if len(self.userlog[ip]) > 5:
+        if len(self.userlog[ip]) > n:
             timelimit = time_now - timedelta(minutes=1)    #added new login time 
-            self.logger.info(f"Request times for {ip} within the last minute: {self.userlog[ip]}")
             if self.userlog[ip][0] > timelimit:             #if first login time is geater than (time 1m ago) AND number of requests are more than 5 == response forbidden
-                self.logger.warning(f"IP {ip} exceeded rate limit")
-                return HttpResponseForbidden("Rate limit exceeded")
+                self.logger.warning(f"User IP {ip} Request limit exceeded")
+                return HttpResponseForbidden("Request limit exceeded")
 
         response = self.get_response(request)
         return response
