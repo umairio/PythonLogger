@@ -169,3 +169,8 @@ LOGGING = {
         },
     },
 }
+
+GOLD = 10
+SILVER = 5
+BRONZE = 2
+UNAUTH = 1

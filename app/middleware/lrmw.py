@@ -2,6 +2,8 @@ import logging
 from datetime import datetime, timedelta
 from collections import defaultdict
 from django.http import HttpResponseForbidden
+from project.settings import GOLD, SILVER, BRONZE, UNAUTH
+import threading
 
 
 class LogRequestMiddleware(object):
@@ -9,6 +11,7 @@ class LogRequestMiddleware(object):
         self.get_response = get_response
         self.logger = logging.getLogger(__name__)
         self.userlog = defaultdict(list)
+        self.lock = threading.Lock()
 
     def get_client_ip(self, request):
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
@@ -32,25 +35,29 @@ class LogRequestMiddleware(object):
             del self.userlog[ip]  # recorded ip are removed
 
     def __call__(self, request):
-        n = int
+        n = 0
         if hasattr(request, "user") and request.user.is_authenticated:
+            print(request.user.count)
             loyalty = request.user.loyalty
             if loyalty == "gold":
-                n = 10
+                n = GOLD
             elif loyalty == "silver":
-                n = 5
+                n = SILVER
             elif loyalty == "bronze":
-                n = 2
+                n = BRONZE
         else:
-            n = 1
+            n = UNAUTH
         time_now = datetime.now()
         ip = self.get_client_ip(request)
-        self.logger.info(f"User IP: {ip} Request time: {time_now}")
+        count = len(self.userlog[ip])
+        self.logger.info(f"User IP: {ip} Request time: {time_now} count: {count}")
         self.time_refresh(time_now)  # calling above function
 
         self.userlog[ip].append(time_now)  # added new login time
-
-        if len(self.userlog[ip]) > n:
+        count = len(self.userlog[ip])
+        request.user.count = count
+        request.user.save()
+        if count > n:
             timelimit = time_now - timedelta(minutes=1)  # added new login time
             if (self.userlog[ip][0] > timelimit):
                 # if first login time is geater than (time 1m ago)
