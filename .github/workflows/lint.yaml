@@ -1,0 +1,34 @@
+name: Python Code Quality - Middleware Branch
+
+on:
+  push:
+    branches:
+      - middleware
+  pull_request:
+    branches:
+      - middleware
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        ref: middleware
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install flake8 isort
+
+    - name: Run Flake8
+      run: flake8 .
+
+    - name: Run isort
+      run: isort .
