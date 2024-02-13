@@ -1,5 +1,6 @@
-from django.shortcuts import render
 import logging
+
+from django.shortcuts import render
 
 
 def index(request):
@@ -7,11 +8,3 @@ def index(request):
 
 
 logger = logging.getLogger("app.views")
-
-
-def my_view(request):
-    logger.debug("This is a debug message")
-    logger.info("This is an info message")
-    logger.warning("This is a warning message")
-    logger.error("This is an error message")
-    logger.critical("This is a critical message")
