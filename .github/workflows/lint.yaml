@@ -24,7 +24,11 @@ jobs:
     - name: Set up PostgreSQL database and Python
       run: |
         sudo apt-get update
-        sudo apt install postgresql-client
+        sudo apt-get install python3-pip -y
+        sudo apt-get install postgresql postgresql-contrib -y
+        sudo apt-get install build-dep python-psycopg2
+        sudo apt-get install libpq-dev
+        pip install psycopg2-binary
         sudo service postgresql start
         sudo -u postgres psql -c "CREATE DATABASE appdb;"
         sudo -u postgres psql -c "CREATE USER umair WITH PASSWORD 'umair';"
@@ -33,7 +37,6 @@ jobs:
         sudo -u postgres psql -c "ALTER ROLE umair SET timezone TO 'UTC';"
         sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE appdb TO umair;"
         sudo service postgresql restart
-        sudo apt-get install python3-pip -y
 
     - name: Install dependencies
       run: |
