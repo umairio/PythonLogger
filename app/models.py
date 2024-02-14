@@ -37,7 +37,7 @@ class Profile(models.Model):
         default=Loyalty.Bronze,
     )
     count = models.IntegerField(default=0)
-    first_time = models.TimeField(blank=True, null=True)
+    first_time = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return self.user.email

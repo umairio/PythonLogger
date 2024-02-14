@@ -35,7 +35,7 @@ class LogRequestMiddleware(object):
             time_now = datetime.now()
             timelimit = time_now - timedelta(minutes=1)
             if request.user.profile.first_time:
-                if request.user.profile.first_time <= timelimit.time():
+                if request.user.profile.first_time <= timelimit:
                     request.user.profile.first_time = time_now
                     request.user.profile.count = 0
                     request.user.profile.save()
@@ -50,7 +50,7 @@ class LogRequestMiddleware(object):
             )
             if (
                 request.user.profile.count > n
-                and request.user.profile.first_time > timelimit.time()
+                and request.user.profile.first_time > timelimit
             ):
                 self.logger.warning(f"User IP {ip} Request limit exceeded")
                 return HttpResponseForbidden("Request limit exceeded")
