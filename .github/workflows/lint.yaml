@@ -16,13 +16,24 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Set up PostgreSQL database
-      run: ./ci_setup.sh
-
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.10'
+
+    - name: Set up PostgreSQL database and Python
+      run: |
+        sudo apt-get update
+        sudo apt-get install postgresql postgresql-contrib -y
+        sudo service postgresql start
+        sudo -u postgres psql -c "CREATE DATABASE appdb;"
+        sudo -u postgres psql -c "CREATE USER umair WITH PASSWORD 'umair';"
+        sudo -u postgres psql -c "ALTER ROLE umair SET client_encoding TO 'utf8';"
+        sudo -u postgres psql -c "ALTER ROLE umair SET default_transaction_isolation TO 'read committed';"
+        sudo -u postgres psql -c "ALTER ROLE umair SET timezone TO 'UTC';"
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE appdb TO umair;"
+        sudo service postgresql restart
+        sudo apt-get install python3-pip -y
 
     - name: Install dependencies
       run: |
