@@ -23,7 +23,8 @@ class LogRequestMiddleware(object):
     def __call__(self, request):
         if request.path == "/home":
             if hasattr(request, "user") and request.user.is_authenticated:
-                loyalty = request.user.profile.loyalty
+                profile = request.user.profile
+                loyalty = profile.loyalty
                 if loyalty == "gold":
                     n = GOLD
                 elif loyalty == "silver":
@@ -35,25 +36,25 @@ class LogRequestMiddleware(object):
 
             time_now = timezone.now()
             timelimit = time_now - timedelta(minutes=1)
-            if request.user.profile.first_time:
-                if request.user.profile.first_time <= timelimit:
-                    request.user.profile.first_time = time_now
-                    request.user.profile.count = 0
-                    request.user.profile.save()
+            if profile.first_time:
+                if profile.first_time <= timelimit:
+                    profile.first_time = time_now
+                    profile.count = 0
+                    profile.save()
             else:
-                request.user.profile.first_time = time_now
+                profile.first_time = time_now
 
             ip = self.get_client_ip(request)
             if (
-                request.user.profile.count == n
-                and request.user.profile.first_time > timelimit
+                profile.count == n
+                and profile.first_time > timelimit
             ):
                 self.logger.warning(f"User IP {ip} Request limit exceeded")
                 return HttpResponseForbidden("Request limit exceeded")
-            request.user.profile.count += 1
-            request.user.profile.save()
+            profile.count += 1
+            profile.save()
             self.logger.info(
-                f"User IP: {ip} Request time: {time_now} count: {request.user.profile.count}"
+                f"User IP: {ip} Request time: {time_now} count: {profile.count}"
             )
         response = self.get_response(request)
         return response

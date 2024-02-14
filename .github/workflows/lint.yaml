@@ -16,6 +16,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Set up PostgreSQL database
+      run: ./ci_setup.sh
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
