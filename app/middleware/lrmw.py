@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from django.http import HttpResponseForbidden
 
 from project.settings import BRONZE, GOLD, SILVER
-
+from django.utils import timezone
 
 class LogRequestMiddleware(object):
     def __init__(self, get_response):
@@ -32,7 +32,7 @@ class LogRequestMiddleware(object):
             else:
                 return HttpResponseForbidden("Only Authenticated users allowed")
 
-            time_now = datetime.now()
+            time_now = timezone.now()
             timelimit = time_now - timedelta(minutes=1)
             if request.user.profile.first_time:
                 if request.user.profile.first_time <= timelimit:
@@ -43,16 +43,16 @@ class LogRequestMiddleware(object):
                 request.user.profile.first_time = time_now
 
             ip = self.get_client_ip(request)
+            if (
+                request.user.profile.count == n
+                and request.user.profile.first_time > timelimit
+            ):
+                self.logger.warning(f"User IP {ip} Request limit exceeded")
+                return HttpResponseForbidden("Request limit exceeded")
             request.user.profile.count += 1
             request.user.profile.save()
             self.logger.info(
                 f"User IP: {ip} Request time: {time_now} count: {request.user.profile.count}"
             )
-            if (
-                request.user.profile.count > n
-                and request.user.profile.first_time > timelimit
-            ):
-                self.logger.warning(f"User IP {ip} Request limit exceeded")
-                return HttpResponseForbidden("Request limit exceeded")
         response = self.get_response(request)
         return response
