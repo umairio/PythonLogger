@@ -1,10 +1,11 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.http import HttpResponseForbidden
+from django.utils import timezone
 
 from project.settings import BRONZE, GOLD, SILVER
-from django.utils import timezone
+
 
 class LogRequestMiddleware(object):
     def __init__(self, get_response):
