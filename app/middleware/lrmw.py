@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from django.http import HttpResponseForbidden
 
-from project.settings import BRONZE, GOLD, SILVER, UNAUTH
+from project.settings import BRONZE, GOLD, SILVER
 
 
 class LogRequestMiddleware(object):
@@ -22,48 +22,37 @@ class LogRequestMiddleware(object):
     def __call__(self, request):
         if request.path == "/home":
             if hasattr(request, "user") and request.user.is_authenticated:
-                profile = request.user.profile
-                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-                if profile.times:
-                    profile.times += f", {current_time}"
-                else:
-                    profile.times = current_time
-                profile.count += 1
-                profile.save()
-
-                loyalty = profile.loyalty
+                loyalty = request.user.profile.loyalty
                 if loyalty == "gold":
                     n = GOLD
                 elif loyalty == "silver":
                     n = SILVER
-                elif loyalty == "bronze":
-                    n = BRONZE
                 else:
-                    n = UNAUTH
+                    n = BRONZE
             else:
                 return HttpResponseForbidden("Only Authenticated users allowed")
 
             time_now = datetime.now()
-            ip = self.get_client_ip(request)
-            self.logger.info(
-                f"User IP: {ip} Request time: {time_now} count: {profile.count}"
-            )
             timelimit = time_now - timedelta(minutes=1)
-            times = profile.times.split(", ")
-            first_time = (
-                datetime.strptime(times[0], "%Y-%m-%d %H:%M:%S.%f") if times else None
+            if request.user.profile.first_time:
+                if request.user.profile.first_time <= timelimit.time():
+                    request.user.profile.first_time = time_now
+                    request.user.profile.count = 0
+                    request.user.profile.save()
+            else:
+                request.user.profile.first_time = time_now
+
+            ip = self.get_client_ip(request)
+            request.user.profile.count += 1
+            request.user.profile.save()
+            self.logger.info(
+                f"User IP: {ip} Request time: {time_now} count: {request.user.profile.count}"
             )
-
-            for time in times:  # iterate over times in one ip
-                if datetime.strptime(time, "%Y-%m-%d %H:%M:%S.%f") <= timelimit:
-                    profile.count = 1
-                    profile.times = ""
-                    profile.save()
-
-            if profile.count > n:
-                if first_time and first_time > timelimit:
-                    self.logger.warning(f"User IP {ip} Request limit exceeded")
-                    return HttpResponseForbidden("Request limit exceeded")
-
+            if (
+                request.user.profile.count > n
+                and request.user.profile.first_time > timelimit.time()
+            ):
+                self.logger.warning(f"User IP {ip} Request limit exceeded")
+                return HttpResponseForbidden("Request limit exceeded")
         response = self.get_response(request)
         return response

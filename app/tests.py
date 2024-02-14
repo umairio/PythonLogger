@@ -14,7 +14,6 @@ class UserModelTestCase(TestCase):
     def test_create_user(self):
         user = User.objects.create_user(
             email="test@example.com",
-            username="testuser",
             first_name="Test",
             last_name="User",
             password="password",
@@ -23,7 +22,6 @@ class UserModelTestCase(TestCase):
 
         self.assertIsInstance(user, User)
         self.assertEqual(user.email, "test@example.com")
-        self.assertEqual(user.username, "testuser")
         self.assertEqual(user.first_name, "Test")
         self.assertEqual(user.last_name, "User")
         self.assertTrue(user.check_password("password"))
@@ -33,16 +31,14 @@ class UserModelTestCase(TestCase):
 
     def test_create_superuser(self):
         superuser = User.objects.create_superuser(
-            email="admin@example.com", username="admin", password="adminpassword"
+            email="admin@example.com", password="adminpassword"
         )
         profile = Profile.objects.create(user=superuser)
 
         self.assertIsInstance(superuser, User)
         self.assertEqual(superuser.email, "admin@example.com")
-        self.assertEqual(superuser.username, "admin")
         self.assertTrue(superuser.check_password("adminpassword"))
-        self.assertEqual(profile.loyalty, "unauthenticated")
-        self.assertTrue(superuser.is_active)
+        self.assertEqual(profile.loyalty, "bronze")
         self.assertTrue(superuser.is_staff)
         self.assertTrue(superuser.is_superuser)
 
@@ -55,7 +51,6 @@ class LogRequestMiddlewaretestCase(TestCase):
     def test_authenticated_gold_user(self):
         user = User.objects.create_superuser(
             email="gold@example.com",
-            username="golduser",
             password="password",
         )
         profile = Profile.objects.create(user=user, loyalty="gold")
@@ -67,13 +62,12 @@ class LogRequestMiddlewaretestCase(TestCase):
         profile = Profile.objects.get(user=user)
         self.assertEqual(profile.count, 10)
 
-        response = self.middleware(resp.wsgi_request)
-        self.assertIsInstance(response, HttpResponseForbidden)
+        resp = client.get("/home")
+        self.assertIsInstance(resp, HttpResponseForbidden)
 
     def test_authenticated_silver_user(self):
         user = User.objects.create_superuser(
             email="silver@example.com",
-            username="silveruser",
             password="password",
         )
         profile = Profile.objects.create(user=user, loyalty="silver")
@@ -85,13 +79,12 @@ class LogRequestMiddlewaretestCase(TestCase):
         profile = Profile.objects.get(user=user)
         self.assertEqual(profile.count, 5)
 
-        response = self.middleware(resp.wsgi_request)
-        self.assertIsInstance(response, HttpResponseForbidden)
+        resp = client.get("/home")
+        self.assertIsInstance(resp, HttpResponseForbidden)
 
     def test_authenticated_bronze_user(self):
         user = User.objects.create_superuser(
             email="bronze@example.com",
-            username="bronzeuser",
             password="password",
         )
         profile = Profile.objects.create(user=user, loyalty="bronze")
@@ -103,12 +96,10 @@ class LogRequestMiddlewaretestCase(TestCase):
         profile = Profile.objects.get(user=user)
         self.assertEqual(profile.count, 2)
 
-        response = self.middleware(resp.wsgi_request)
-        self.assertIsInstance(response, HttpResponseForbidden)
+        resp = client.get("/home")
+        self.assertIsInstance(resp, HttpResponseForbidden)
 
     def test_unauthenticated_user(self):
         client = Client()
         resp = client.get("/home")
-
-        response = self.middleware(resp.wsgi_request)
-        self.assertIsInstance(response, HttpResponseForbidden)
+        self.assertIsInstance(resp, HttpResponseForbidden)

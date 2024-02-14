@@ -7,20 +7,17 @@ from .managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    username = models.CharField(_("username"), max_length=150, unique=True)
     email = models.EmailField(_("email address"), unique=True)
     first_name = models.CharField(_("first name"), max_length=30, blank=True)
     last_name = models.CharField(_("last name"), max_length=30, blank=True)
     date_joined = models.DateTimeField(_("date joined"), auto_now_add=True)
     is_staff = models.BooleanField(_("staff status"), default=False)
-    objects = UserManager()
+    is_superuser = models.BooleanField(_("superuser status"), default=False)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]
+    REQUIRED_FIELDS = []
 
-    class Meta:
-        verbose_name = _("user")
-        verbose_name_plural = _("users")
+    objects = UserManager()
 
 
 class Profile(models.Model):
@@ -28,7 +25,6 @@ class Profile(models.Model):
         Gold = "gold"
         Silver = "silver"
         Bronze = "bronze"
-        Unauthenticated = "unauthenticated"
 
     user = models.OneToOneField(
         "User", verbose_name=_("user"), on_delete=models.CASCADE
@@ -38,10 +34,10 @@ class Profile(models.Model):
         _("loyalty"),
         max_length=20,
         choices=Loyalty.choices,
-        default=Loyalty.Unauthenticated,
+        default=Loyalty.Bronze,
     )
     count = models.IntegerField(default=0)
-    times = models.TextField(default="", blank=True)
+    first_time = models.TimeField(blank=True, null=True)
 
     def __str__(self):
-        return self.user.username
+        return self.user.email
